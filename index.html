@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>簡單魔藥店經營遊戲</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;700&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: #0f0b09 url('https://raw.githubusercontent.com/tcchoy/potion_shop_adventure_story/refs/heads/main/Whisperwind%20Woodland.png') center/cover no-repeat fixed;
+    color: #4e342e;
+    min-height: 100vh;
+    padding: 20px;
+    position: relative;
+  }
+  body::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 11, 9, 0.7);
+    pointer-events: none;
+  }
+  .container { max-width: 1400px; margin: 0 auto; position: relative; z-index: 1; }
+  header {
+    text-align: center; margin-bottom: 20px; background: rgba(255,255,255,0.95);
+    border-radius: 1.5rem; padding: 20px 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    border: 3px solid #ffcc80;
+  }
+  h1 { font-size: 2.8rem; color: #85522d; text-shadow: 2px 2px 5px rgba(0,0,0,0.1); font-weight: 700; }
+  .game-area {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    min-height: 70vh;
+  }
+  @media (max-width: 1024px) {
+    .game-area { grid-template-columns: 1fr; }
+  }
+  .panel {
+    background: rgba(255,255,255,0.9); border-radius: 1.5rem; padding: 25px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2); backdrop-filter: blur(4px);
+    border: 1px solid #ffccbc;
+  }
+  .panel h2 {
+    font-size: 1.8em; color: #6d4c41; margin-bottom: 15px;
+    text-align: center; border-bottom: 2px solid #ffab91; padding-bottom: 8px;
+    font-weight: 700;
+  }
+  button {
+    background: linear-gradient(to bottom, #ffcc80, #ff9800); border: none;
+    padding: 10px 18px; border-radius: 9999px; font-weight: bold; cursor: pointer;
+    box-shadow: 0 4px 10px rgba(255,152,0,0.4); transition: all 0.2s ease-in-out;
+    margin: 4px; color: #4e342e;
+  }
+  button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(255,152,0,0.6); background: linear-gradient(to bottom, #ffdb99, #ffb74d); }
+  button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+  
+  #log {
+    height: 350px; overflow-y: auto; background: #fffdfa;
+    padding: 15px; border-radius: 15px; line-height: 1.6;
+    border: 2px dashed #ffab91; color: #4e342e;
+    font-size: 0.95rem;
+    display: flex; /* For CR-8: New flex container */
+    flex-direction: column-reverse; /* For CR-8: Puts new logs at the top */
+  }
+  .log-entry { margin-bottom: 8px; border-bottom: 1px dotted #ffccbc; padding-bottom: 5px; opacity: 0; animation: fadein 0.8s forwards; }
+  .log-entry.success { color: #2e7d32; font-weight: bold; }
+  .log-entry.fail { color: #d32f2f; }
+  .log-entry.event { color: #9c27b0; font-style: italic; font-weight: 700; }
+  @keyframes fadein { from {opacity:0; transform:translateY(5px);} to {opacity:1; transform:none;} }
+  
+  .inventory, .potions-list {
+    display: grid; gap: 8px; margin-top: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  }
+  .item {
+    background: #e1f5fe; padding: 8px; border-radius: 8px;
+    text-align: center; font-size: 0.85rem; border: 1px solid #90caf9;
+    cursor: default;
+    transition: background 0.1s;
+    position: relative; /* For CR-5 */
+  }
+  .item-content {
+      display: flex; justify-content: center; align-items: center;
+      flex-direction: column;
+      min-height: 50px;
+  }
+  .item-info {
+      font-weight: 500; margin-bottom: 5px;
+      cursor: pointer;
+   
+				 
+																		
+  }
+  /* CR-5: Optimized Discard Button Style */
+  .action-btn.discard { 
+      position: absolute; 
+      top: -5px; 
+      right: -5px; 
+      padding: 0;
+      width: 20px; 
+      height: 20px; 
+      line-height: 1; 
+      font-size: 1rem; 
+      background-color: #f44336; 
+      color: white; 
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2); 
+      z-index: 10;
+  }
+																  
+  
+  .potion { 
+      background: #fce4ec; 
+      border: 1px solid #f48fb1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 8px;
+  }
+  .potion-info {
+      font-size: 0.9em;
+      font-weight: bold;
+      margin-bottom: 8px;
+  }
+  .potion-sell-btn {
+      background: #4caf50; 
+      color: white;
+      padding: 5px 10px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      cursor: pointer;
+  }
+  .potion-sell-btn:hover { background: #66bb6a; }
+
+  #cauldron-area {
+    min-height: 150px; background: #4e342e; border-radius: 1rem;
+    padding: 15px; margin: 15px 0; border: 4px solid #795548;
+    box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
+    display: flex; justify-content: center; align-items: center; flex-wrap: wrap;
+    gap: 10px;
+  }
+  .cauldron-item {
+    background: #a1887f; color: white; padding: 5px 10px;
+    border-radius: 5px; font-size: 0.9em; box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  }
+  .gold { color: #ff8f00; font-weight: 900; }
+  .recipe-list { font-size: 0.85em; line-height: 1.6; max-height: 32	0px; overflow-y: auto; color: #4e342e; }
+  .recipe-entry {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 3px 0;
+      border-bottom: 1px dotted #ffccbc;
+  }
+  .recipe-text { flex-grow: 1; }
+  .recipe-action button { 
+      padding: 2px 8px; font-size: 0.75rem; margin: 0; 
+      border-radius: 9999px; 
+      background: #795548; color: white;
+  }
+  .recipe-action button:hover { background: #5d4037; }
+  .recipe-unknown { color: #757575; font-style: italic; }
+  .recipe-known { color: #4e342e; font-weight: 500; }
+
+  /* New Styling for Quest */
+  #quest {
+    background: #fff3e0; border: 2px solid #ffcc80; padding: 15px;
+    border-radius: 12px; margin-bottom: 15px;
+  }
+  #quest p { margin-bottom: 10px; color: #4e342e; }
+  #quest strong { color: #8d6e63; font-size: 1.1em; }
+  
+  /* Custom Confirmation Modal Styling */
+  #confirmModal {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.7); display: none; z-index: 1000;
+    justify-content: center; align-items: center;
+  }
+  .modal-content {
+    background: white; padding: 30px; border-radius: 1rem;
+    width: 90%; max-width: 400px; text-align: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  }
+  
+  .tier-display {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 5px;
+      margin-left: 5px;
+      display: inline-block;
+  }
+  .tier-1 { background-color: #a5d6a7; color: #1b5e20; }
+  .tier-2 { background-color: #ffcc80; color: #e65100; }
+  .tier-3 { background-color: #f48fb1; color: #880e4f; }
+  
+  /* CR-7: Element-based colors for inventory sorting visual cue */
+  .element-Wind { background-color: #e3f2fd; border-color: #90caf9; }
+  .element-Fire { background-color: #ffebee; border-color: #ef9a9a; }
+  .element-Water { background-color: #e0f7fa; border-color: #80deea; }
+  .element-Earth { background-color: #fbe9e7; border-color: #ffab91; }
+
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>鍊金店的發現之旅</h1>
+    <p class="text-sm text-gray-600 mb-3">文字魔藥店優化版：探索、實驗、經營</p>
+    <div class="flex flex-wrap justify-center items-center gap-4 text-lg">
+      <span class="p-2 bg-yellow-100 rounded-full shadow-md">💰 金幣：<span id="gold" class="gold">50</span> G</span>
+      <span class="p-2 bg-blue-100 rounded-full shadow-md">📅 日數：<span id="day">1</span></span>
+      <span class="p-2 bg-purple-100 rounded-full shadow-md">✨ 聲望：<span id="fame">0</span> ✦</span>
+      <span class="p-2 bg-red-100 rounded-full shadow-md">🥵 疲勞：<span id="fatigue">0</span>/<span id="maxFatigue">20</span></span>
+    </div>
+    <div class="mt-4">
+      <button onclick="saveGame()">💾 匯出存檔</button>
+      <button onclick="loadGame()">📂 讀取存檔</button>
+      <button onclick="openClearSaveModal()">🗑️ 清除進度</button>
+      <span id="saveStatus" class="text-sm text-green-600 ml-4" style="display:none;">已自動存檔！</span>
+    </div>
+  </header>
+
+  <div class="game-area">
+							   
+    <div class="panel">
+												 
+      <h2>野外採集 ✿ (疲勞 +1)</h2> <p class="text-gray-700 mb-4">今天要去哪裡探險呢？</p>
+									   
+      <div class="flex flex-wrap gap-2 mb-4">
+        <button onclick="explore('wind')" id="btn-wind">🌬️ 疾風草原</button>
+        <button onclick="explore('fire')" id="btn-fire">🔥 烈焰火山</button>
+        <button onclick="explore('water')" id="btn-water">💧 深海湖泊</button>
+        <button onclick="explore('earth')" id="btn-earth">🌍 大地森林</button>
+      </div>
+      
+      <div id="explore-info" class="text-sm text-gray-600 mb-2"></div>
+      
+      <h3>背包（<span id="invCount">0</span>/<span id="maxInv">30</span>）<span class="text-xs text-red-500" id="fatigueWarning" style="display:none;">（高疲勞，有風險！）</span></h3>
+      <p class="text-xs text-gray-500 mb-2">點擊素材放入鍋爐，或點擊右上方減號丟棄素材。</p>
+      <div id="inventory" class="inventory"></div>
+      
+      <div class="mt-4 border-t pt-3">
+          <button id="upgradeInvBtn" onclick="upgradeInventory()" class="w-full bg-blue-300 hover:bg-blue-400">
+              🎒 擴展背包至 <span id="nextMaxInv">40</span> (費用：<span id="upgradeCost">100</span> G)
+          </button>
+      </div>
+    </div>
+
+							   
+    <div class="panel">
+      <h2>鍊金鍋爐 ✨ (需 2 種素材)</h2>
+      <div id="cauldron-area">
+											   
+        <span class="text-gray-400 text-lg" id="cauldronPlaceholder">鍋爐空空如也...</span>
+      </div>
+      <div class="flex flex-wrap gap-2 justify-center mb-4">
+        <button onclick="brew()" class="bg-red-300 hover:bg-red-400">🔥 開始熬煮</button>
+        <button onclick="clearCauldron()" class="bg-gray-300 hover:bg-gray-400">清空鍋子 (返還素材)</button>
+      </div>
+      
+													  
+      <h3>已知配方 (需成功熬煮後解鎖, 可以點擊合成)</h3> <div id="recipes" class="recipe-list"></div>
+      
+      <h3>藥水庫存</h3>
+      <div id="potionsList" class="potions-list"></div>
+    </div>
+
+										
+    <div class="panel">
+      <h2>🔔 今日委託</h2>
+      <div id="quest"></div>
+      <button onclick="nextDay()" class="w-full mt-4 bg-green-300 hover:bg-green-400">🌅 迎接新的一天 (重置疲勞)</button>
+      
+      <h2>📜 冒險日誌</h2>
+      <div id="log"></div>
+    </div>
+  </div>
+</div>
+
+													   
+<div id="confirmModal">
+  <div class="modal-content">
+    <h3 class="text-2xl font-bold text-red-600 mb-4">⚠️ 最終警告 ⚠️</h3>
+    <p class="mb-6 text-gray-700">真的要**清除所有進度**，回到最初嗎？這將**無法復原**。</p>
+    <div class="flex justify-center gap-4">
+      <button onclick="clearSaveConfirmed(true)" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full">
+        🗑️ 確認清除
+      </button>
+      <button onclick="clearSaveConfirmed(false)" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-full">
+        取消
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// --- 數據結構重構：統一數據源 (ITEM_DATA) (CR-4 + BUG-4 Fix)---
+const ITEM_DATA = {
+  // --- Materials (Element Themed) ---
+  
+  // WIND 🌬️ (疾風草原)
+  "風行草": { tier: 1, type: 'Herb', basePrice: 10, icon: '🍃', story: "隨著風輕輕飄動的草，輕盈翠綠。", element: 'Wind', sortOrder: 1 },
+  "幸運絨毛": { tier: 1, type: 'Animal', basePrice: 25, icon: '🕊️', story: "雪白的絨毛，傳說能帶來好運。", element: 'Wind', sortOrder: 2 },
+  "彩虹花": { tier: 2, type: 'Flower', basePrice: 35, icon: '🌈', story: "彩虹花的花瓣會隨光線和生長的地方改變色彩。", element: 'Wind', sortOrder: 4 },
+  "獨角獸毛": { tier: 3, type: 'Animal', basePrice: 30, icon: '🦄', story: "獨角獸柔軟細緻的毛髮，如夢似幻。", element: 'Wind', sortOrder: 3 },
+
+  // FIRE 🔥 (烈焰火山)
+  "火紅晶": { tier: 1, type: 'Mineral', basePrice: 10, icon: '🔥', story: "在暗處發出強烈光芒，像藏著小火焰。", element: 'Fire', sortOrder: 5 },
+  "毒蛇牙": { tier: 1, type: 'Monster', basePrice: 15, icon: '🐍', story: "從岩縫中找到脫落的毒牙，自帶毒素。", element: 'Fire', sortOrder: 6 },
+  "紅炎花瓣": { tier: 2, type: 'Flower', basePrice: 20, icon: '🌸', story: "赤紅的花瓣散發微微暖意。", element: 'Fire', sortOrder: 7 },
+  "火蜥蜴尾": { tier: 3, type: 'Monster', basePrice: 30, icon: '🦎', story: "尾端仍殘留微弱熱度，極具價值。", element: 'Fire', sortOrder: 8 }, // BUG-4 Material
+
+  // WATER 💧 (深海湖泊)
+  "冰雪蘑菇": { tier: 1, type: 'Fungus', basePrice: 10, icon: '🍄', story: "冒出淡淡光暈，湖畔的基礎素材。", element: 'Water', sortOrder: 9 },
+  "水蓮": { tier: 1, type: 'Flower', basePrice: 15, icon: '💧', story: "散發清新的香氣，像湖面清晨的空氣。", element: 'Water', sortOrder: 10 },
+  "星露水": { tier: 2, type: 'Liquid', basePrice: 20, icon: '✨', story: "映出微小星光，像裝著一片夜空。", element: 'Water', sortOrder: 11 },
+  "人魚鱗片": { tier: 3, type: 'Monster', basePrice: 30, icon: '🧜‍♀️', story: "在陽光下閃閃發亮，極難獲得。", element: 'Water', sortOrder: 12 },
+
+  // EARTH 🌍 (大地森林)
+  "月光草": { tier: 1, type: 'Herb', basePrice: 10, icon: '🌙', story: "葉面上有銀白色的光痕，常見於森林。", element: 'Earth', sortOrder: 13 },
+  "粗糙礦石": { tier: 1, type: 'Mineral', basePrice: 20, icon: '💎', story: "從地底挖出的基礎礦石。", element: 'Earth', sortOrder: 14 },
+  "龍息草": { tier: 2, type: 'Herb', basePrice: 40, icon: '🐲', story: "散出細細煙霧，像小龍的呼吸。", element: 'Earth', sortOrder: 15 },
+  "螢光石": { tier: 3, type: 'Mineral', basePrice: 30, icon: '💡', story: "柔光照亮指尖，充滿暖意，十分稀有。", element: 'Earth', sortOrder: 16 },
+
+
+  // --- Potions (CR-4: New Recipes, T1 uses same location materials) ---
+  // T1 Potions (Base T1 materials from same location)
+  "低階治療藥水": { tier: 1, type: 'Potion', basePrice: 80, ingredients: ["風行草", "冰雪蘑菇"], brewText: "雖然只是低階治療藥水，希望能幫助到有需要的人吧!" }, // Wind + Water T1
+  "低階毒藥": { tier: 1, type: 'Potion', basePrice: 100, ingredients: ["毒蛇牙", "月光草"], brewText: "綠色毒霧瀰漫，連瓶蓋都吱吱作響…小心！" }, 
+  // Fire + Earth T1
+
+  // T2 Potions (Require T1 + T2 or two T2 materials)
+  "速度藥水": { tier: 2, type: 'Potion', basePrice: 180, ingredients: ["風行草", "幸運絨毛"], brewText: "淡綠色的藥劑洋溢風元素，喝了腳步會變得飛快！" }, // T1 Wind + T2 Wind
+  "火焰藥水": { tier: 2, type: 'Potion', basePrice: 150, ingredients: ["火紅晶", "紅炎花瓣"], brewText: "火焰在瓶中跳舞，像關著一隻小火龍！" }, // T1 Fire + T2 Fire
+  "力量藥水": { tier: 2, type: 'Potion', basePrice: 220, ingredients: ["紅炎花瓣", "粗糙礦石"], brewText: "肌肉鼓起的紅色光芒，力量爆發啦！" }, // T2 Fire + T2 Earth
+  "幸運藥水": { tier: 2, type: 'Potion', basePrice: 200, ingredients: ["星露水", "水蓮"], brewText: "金光閃閃的幸運藥水，喝了肯定好運爆棚！" }, // T2 Water + T2 Water
+  
+  // T3 Potions (Require T2 + T3 or two T3 materials)
+  "高階治療藥水": { tier: 3, type: 'Potion', basePrice: 350, ingredients: ["獨角獸毛", "紅炎花瓣"], brewText: "珍貴的治療藥劑，瞬間便能回復絕大部分的受傷！" }, // T3 Water + T2 Fire
+  "隱形藥水": { tier: 3, type: 'Potion', basePrice: 400, ingredients: ["龍息草", "人魚鱗片"], brewText: "藥水漸漸變透明，連瓶子都不見了！疑...放在哪裡了?" }, // T3 Earth + T3 Wind
+  "愛情藥水": { tier: 3, type: 'Potion', basePrice: 300, ingredients: ["彩虹花", "星露水"], brewText: "粉紅心心泡泡亂飛，愛情藥水太浪漫了！" }, // T3 Wind + T2 Water
+  "解毒藥": { tier: 3, type: 'Potion', basePrice: 250, ingredients: ["螢光石", "毒蛇牙"], brewText: "只要中毒後5分鐘內飲下，便可以抵擋一切毒！...時間過了的話藥效會降低一點點。" }, // T3 Earth + T1 Fire
+  "強力火焰藥水": { tier: 3, type: 'Potion', basePrice: 450, ingredients: ["火蜥蜴尾", "火紅晶"], brewText: "火焰像龍捲風一樣在瓶中旋轉！足以融化鋼鐵！" } // BUG-4 Fix Recipe
+};
+
+// 將所有配方提取出來，用於 CR-11 排序
+const POTION_KEYS_ORDERED = Object.keys(ITEM_DATA).filter(k => ITEM_DATA[k].type === 'Potion');
+
+
+// --- 任務與故事整合 (修復 BUG 7) ---
+const QUEST_EVENTS = {
+  "低階治療藥水": {
+    request: "年輕的學徒受了輕傷，急需一瓶低階治療藥水來治療。",
+    success: ["學徒喝下藥水後傷口瞬間癒合，他激動地向你深深一鞠躬，承諾以後只光顧你的店。", "學徒急速跑回店內繼續工作，你想叫他休息一會也來不及了。"],
+    fail: "學徒嘆了口氣，說傷口不能再拖了，轉身前往另一家藥鋪。"
+  },
+  "低階毒藥": {
+    request: "某位商人訂購了低階毒藥，用途可疑，但報酬豐厚。",
+    success: ["商人微笑著收下，說「這瓶會讓某個貴族永遠閉嘴」…你決定不追問，收下報酬，畢竟這就是黑市的規則。", "低階毒藥的藥效太好了，城內的鼠患都解決了！你收到了城防軍的獎勵 (和一些警告)。"],
+    fail: "商人取消了訂單，因為他已經找到其他的手段了。"
+  },
+  "速度藥水": {
+    request: "盜賊需要速度藥水來擺脫守衛的追捕。",
+    success: ["盜賊喝完後瞬間繞了店裡三圈，還說「這輩子沒跑這麼快！」並給你留下了一塊寶石。", "盜賊本來打算不給錢直接跑走，你微微一笑，盜賊乖乖地把錢留下藥錢了。"],
+    fail: "盜賊焦急地看著窗外，因為沒有藥水而錯失了逃跑的最佳時機。"
+  },
+  "火焰藥水": {
+    request: "老法師要對付一隻冰龍，想要火焰藥水增強火力。",
+    success: ["老法師一口飲盡，鬍子瞬間燒紅，興奮地喊著「這就是我要的龍焰之力！」他給了你額外的酬謝。", "老法師拿著火焰藥水對空一噴，噴出十公尺火柱，全場歡呼！你被譽為火焰鍊金師！"],
+    fail: "老法師搖搖頭，說沒有火焰藥水就無法完成任務，悻悻然離開。"
+  },
+  "強力火焰藥水": { // BUG-4 Quest
+    request: "一支遠征軍需要最頂級的火焰藥水來對抗遠古巨龍。",
+    success: ["遠征軍的隊長成功擊敗了巨龍，他將一枚傳奇級的勳章作為報酬送給你。", "藥水的火焰形成了一道防禦牆，阻止了巨龍入侵，拯救了整個村莊！你成為了家喻戶曉的英雄。"],
+    fail: "遠征軍隊長因為火力不足而受挫，決定去其他城市尋找幫助。"
+  },
+  "力量藥水": {
+    request: "大力士要力量藥水挑戰巨獸，展現肌肉。",
+    success: ["大力士喝下後單手舉起巨石，現場觀眾尖叫連連！他大方地支付了報酬，並稱讚你是最強的鍊金師。", "大力士喝了之後去挑戰巨獸，成功狩獵巨獸後他決定送給你一些魔藥素材答謝。"],
+    fail: "大力士垂頭喪氣地離開，看來他的挑戰要延期了。"
+  },
+  "幸運藥水": {
+    request: "貴族小姐急需幸運藥水，希望能在明天的賭局中獲勝。",
+    success: ["貴族小姐喝下後在賭場連贏三把，她把贏來的金幣分你一部分！還送你了一件小禮物。", "貴族小姐在賭局中獲勝，成功和三位大客戶簽約並承諾以後幫助他們家族運送貨物。"],
+    fail: "貴族小姐失望地說：「沒有幸運藥水，我的運氣一定會很差！」"
+  },
+  "高階治療藥水": {
+    request: "受重傷的皇家護衛急需高階治療藥水救命。",
+    success: ["皇家護衛喝下藥水後所有傷口立刻回復，激動地感謝你的救命之恩！", "皇家護衛喝下魔藥後甦醒，他默默給你一袋金幣，感謝你救了他一命！"],
+    fail: "騎士的臉色越來越差，被同伴緊急帶走，你感到非常遺憾。"
+  },
+  "隱形藥水": {
+    request: "潛行者公會需要隱形藥水執行一項秘密任務。",
+    success: ["潛行者公會的代表喝下後消失在空中，只留下一句「下次再來多買幾瓶！」你收到了一張黑市金幣券。", "原來是要用來偷聽大臣會議，他默默給你一袋金幣，並要你保守秘密。"],
+    fail: "公會代表留下了一張寫著「下次再會」的字條，人就消失了。"
+  },
+  "愛情藥水": {
+    request: "害羞的精靈想要愛情藥水向暗戀對象告白。",
+    success: ["精靈喝下後對著樹告白，結果樹真的回應了！全森林都轟動了，你收到了豐厚的紅包。", "害羞的精靈喝下魔藥，祈求自己的告白順利，結果告白成功，給你送來了禮物！你的愛情藥水成了傳說。"],
+    fail: "精靈害羞地跑開了，說沒有藥水他不敢面對心愛的人。"
+  },
+  "解毒藥": {
+    request: "城鎮居民被傳染的毒素感染，急需解毒藥。",
+    success: ["居民喝下藥水後立刻恢復，還送你一籃新鮮水果！", "你成功淨化了城市的水源，市長決定給你頒發榮譽鍊金師的稱號！"],
+    fail: "居民情況惡化，被隔離治療，你感到非常沮喪。"
+  }
+};
+
+// --- 每日事件 (Daily Events) ---
+const DAILY_EVENTS = [
+    {
+        name: "市場需求激增",
+        description: "鍊金術師公會發布公告：今天所有藥水報酬翻倍！",
+        rewardModifier: (potionData) => potionData.tier >= 1 ? 2.0 : 1.0, // PC - Chane to ignore tier
+        fatigueModifier: () => 1.0,
+        riskModifier: () => 1.0,
+        type: 'reward_event'
+    },
+	{
+        name: "市場需求激增",
+        description: "最近有大型狩獵活動，冒險者都在收購藥劑了。今天所有藥水報酬翻倍！",
+        rewardModifier: (potionData) => potionData.tier >= 1 ? 2.0 : 1.0, // PC - Chane to ignore tier
+        fatigueModifier: () => 1.0,
+        riskModifier: () => 1.0,
+        type: 'reward_event'
+    },
+    {
+        name: "草原和森林資源大豐收",
+        description: "今日疾風草原和大地森林的探索，疲勞消耗減半！",
+        rewardModifier: () => 1.0,
+        fatigueModifier: (area) => (area === 'wind' || area === 'earth') ? 0.5 : 1.0,
+        riskModifier: () => 1.0,
+        type: 'explore_event'
+    },
+	{
+        name: "火山和湖泊資源大豐收",
+        description: "今日烈焰火山和深海湖泊的探索，疲勞消耗減半！",
+        rewardModifier: () => 1.0,
+        fatigueModifier: (area) => (area === 'fire' || area === 'water') ? 0.5 : 1.0,
+        riskModifier: () => 1.0,
+        type: 'explore_event'
+    },
+    {
+        name: "火山管制",
+        description: "守衛隊加強了對火山的管制，今日探索烈焰火山失敗的風險提高 30%！",
+        rewardModifier: () => 1.0,
+        fatigueModifier: () => 1.0,
+        riskModifier: (area) => area === 'fire' ? 1.3 : 1.0,
+        type: 'explore_event'
+    },
+	    {
+        name: "草原採集過量",
+        description: "草原近日被採集過量，今日探索疾風草原失敗的風險提高 30%！",
+        rewardModifier: () => 1.0,
+        fatigueModifier: () => 1.0,
+        riskModifier: (area) => area === 'wind' ? 1.3 : 1.0,
+        type: 'explore_event'
+    },
+	    {
+        name: "森林危機",
+        description: "冒險者公會宣佈森林近日發現有高級魔獸徘徊，今日探索大地森林失敗的風險提高 30%！",
+        rewardModifier: () => 1.0,
+        fatigueModifier: () => 1.0,
+        riskModifier: (area) => area === 'earth' ? 1.3 : 1.0,
+        type: 'explore_event'
+    },
+	    {
+        name: "湖泊乾涸",
+        description: "連日來的乾旱令湖泊陷入乾涸，今日探索深海湖泊失敗的風險提高 30%！",
+        rewardModifier: () => 1.0,
+        fatigueModifier: () => 1.0,
+        riskModifier: (area) => area === 'water' ? 1.3 : 1.0,
+        type: 'explore_event'
+    },
+    {
+        name: "普通的一天",
+        description: "今天風平浪靜，一切如常。",
+        rewardModifier: () => 1.0,
+        fatigueModifier: () => 1.0,
+        riskModifier: () => 1.0,
+        type: 'normal'
+    }
+];
+
+// --- 探索地點與產出物 (CR-4) ---
+const materialsByArea = {
+  wind: ["風行草", "幸運絨毛", "獨角獸毛", "彩虹花"],
+  fire: ["火紅晶", "毒蛇牙", "紅炎花瓣", "火蜥蜴尾"],
+  water: ["冰雪蘑菇", "水蓮", "星露水", "人魚鱗片"],
+  earth: ["月光草", "粗糙礦石", "龍息草", "螢光石"]
+};
+
+// --- 遊戲平衡：背包擴展費用 (CR-10) ---
+const MAX_INVENTORY_UPGRADES = [40, 50, 65, 80, 100];
+const MAX_INVENTORY_UPGRADE_COSTS = [100, 250, 500, 800, 1500];
+
+    
+// --- 故事文本 ---
+const exploreStories = {
+  wind: ["一陣帶著花香的風拂過，你在草地上慢慢踱步，尋找稀有的素材。", 
+		"一陣帶著花香的風拂過，你的披風和掛在腰間的小瓶子一起輕輕晃動。",
+		"你走過時，草尖擦過你的靴子與披風，帶起一陣淡淡的青草香。",
+		"你隨手摘下一根細長的草含在嘴裡，任由自己在陽光裡慢慢踱步。",
+		"無邊的草原在眼前鋪展開來，遠處的風羊慢悠悠地吃草，你發現了幾株閃爍著光點的奇異植物。",
+		"你找到一塊還算平整的岩石坐下，把背包放在旁邊，讓肩膀好好休息一下。",
+		 "有幾隻好奇的小樹精從樹根後探出頭，悄悄打量你，又迅速躲回影子裡。",
+		 "你抬頭看見天空只露出一小塊藍色，心想或許今天是個適合迷路，也是適合發現驚喜的日子。",
+		 "遠處有冒險者的隊伍經過，傳來隱約的對話聲，看來他們今天的收穫很豐富呢。",
+		 "在這樣安靜又廣闊的草原上，你只想多賴一會兒，讓時間跟著草一起慢慢搖晃。",
+		 "你在一塊柔軟的草地上躺下，背包當枕頭，看著一隻彩羽小鳥在頭頂盤旋。"
+		],
+  fire: ["乾燥的熱氣撲面而來，你小心翼翼地沿著火山岩漿流過的痕跡探索，希望避開有毒的氣體。",
+		"你在洞窟裡點亮了魔法火球，空氣帶著些許硫磺的味道，你在發光的晶體縫隙中發現了物品。",
+		"遠方傳來不知名魔獸的低吼，要專心一點警戒四周環境了。",
+		"火山四周太過炎熱了，你在思考下次要不要帶上一瓶抗炎藥劑，可以輕鬆涼快一點。",
+		"你走了一會，開始有點餓了，你打量四周，看看有沒有什麼可以作為午餐的食材。",
+		"你抵受不了這份炎熱了，決定先坐下來休息一小會。",
+		"空氣帶著些許硫磺的味道，你有點想念上次浸泡的溫泉了。"
+		],
+  water: ["岸邊有隻野鹿在喝水，你把手伸進湖水裡，冰涼的觸感讓你精神一振。",
+		"湖面像一大片攤開的鏡子，微風拂過，你深入湖畔沼澤，找到了被浪花沖上岸的物品。",
+		"不遠處有小精靈懶洋洋地趴在蘑菇上打盹，鼻尖還沾著花粉。",
+		"湖面像一大片攤開的鏡子，把天空和遠處山巒都收進了懷裡。",
+		"你翻出小筆記本，在頁角記下「湖邊午餐：味道加分，風景滿分」。",
+		"數隻小鴨子浮在水面上，好奇地看你咬著麵包，像在等你分一口。",
+		"你伸懶腰站起來，拍掉衣服上的麵包屑，心想下次也許該帶點點心給那些饞嘴的小鴨子。",
+		"你看著水塘裡晃動的倒影，忍不住在水面上輕輕點了一下，讓自己的影子變得滑稽扭曲。",
+		"天邊的雲被曬得發亮，偶爾有一兩朵呈現奇怪的形狀，像是誰偷偷在雲裡藏了巨大的魔法生物。"
+		],
+  earth: ["陽光從樹葉縫隙灑下，你順著蜿蜒的小徑漫步，一棵長滿苔蘚的大樹下似乎藏著什麼秘密。",
+		"森林深處傳來鳥鳴，你蹲下身，撥開厚厚的落葉和泥土，感覺到泥土深處傳來的微弱震動。",
+		"陽光從樹葉縫隙灑下，你發現了一個很適合採集的地方，仔細地張望。",
+		"冷涼的空氣帶著些許礦物的味道，讓人不自覺深呼吸，腦袋也清醒了不少。",
+		"在這靜謐的森林裡，你決定暫時不去想危險與任務，只當自己是在避暑的秘密基地裡偷懶。",
+		"你順著蜿蜒的小徑漫步，每踩一下，落葉就發出輕脆聲響，像在替你伴奏。",
+		"森林深處傳來鳥鳴與不知名魔獸的低吼。",
+		"你在一棵長滿苔蘚的大樹旁坐下，翻開地圖，隨手在空白處畫了幾筆亂七八糟的塗鴉。",
+		"遠方傳來微弱的鈴聲，也許是商隊經過，但你暫時沒有打算起身。"
+		]
+};
+
+const brewFail = [
+  "變成一團紫色黏黏的泥巴，還對你吐舌頭…",
+  "發出超級臭的味道！窗外的貓頭鷹都飛走了！",
+  "轟！鍋子小爆炸，滿屋子彩色煙霧三天才散。",
+  "變成會跳的青蛙果凍，蹦蹦跳跳逃出窗外…",
+  "整鍋變成黑色，還長出小觸手對你揮手！"
+];
+
+const newDayStories = [
+  "陽光從窗戶灑進來，門口的風鈴叮叮噹噹響著迎接新的一天。",
+  "貓頭鷹帶著一封新的委託信飛來，新的冒險開始啦！",
+  "店門口開了一朵從沒看過的小花，今天也會是美好的一天～",
+  "旁邊麵包店烤麵包的香味飄進屋內，今天也會是美好的一天～",
+  "遠處傳來冒險者們的笑聲，又是充滿希望的一天！"  
+];
+
+// --- 遊戲狀態 ---
+			
+		   
+		 
+		  
+								  
+									  
+								  
+			 
+			  
+											   
+									 
+								   
+										   
+										  
+  
+
+const BASE_MAX_INVENTORY = 30;
+const MAX_FATIGUE = 20;
+
+const INITIAL_GAME_STATE = {
+    gold: 50,
+    day: 1,
+    fame: 0,
+    inventory: {},
+    cauldron: [],
+    potions: {},
+    fatigue: 0,
+    invCount: 0,
+    knownRecipes: [],
+    currentQuest: null,
+    dailyEvent: null,
+    loggedFatigueFull: false,
+    loggedInvFull: false,
+    maxInventory: BASE_MAX_INVENTORY, // CR-10: New Property
+    inventoryUpgradeLevel: 0,         // CR-10: New Property
+};
+
+let game = JSON.parse(JSON.stringify(INITIAL_GAME_STATE)); // Ensure deep copy on initialization
+
+// --- 核心更新與渲染 (優化) ---
+function updateElement(id, content, isHtml = false) {
+  const el = document.getElementById(id);
+  if (el) {
+    if (isHtml) {
+      el.innerHTML = content;
+    } else {
+      el.textContent = content;
+    }
+  }
+}
+
+function renderGameState() {
+  updateStatPanel();
+								 
+								   
+										 
+										   
+										   
+  renderInventory();
+  renderPotions();
+  renderCauldron();
+  renderRecipes();
+  updateExploreButtons();
+						   
+					
+		  
+  renderQuest(); // 確保任務在每次渲染時都顯示
+  updateInventoryUpgradeButton(); // CR-10: Update upgrade button state
+  autoSave();
+}
+
+function updateStatPanel() {
+  updateElement('gold', game.gold);
+  updateElement('day', game.day);
+  updateElement('fame', game.fame);
+  updateElement('fatigue', game.fatigue);
+  updateElement('maxFatigue', MAX_FATIGUE);
+  updateElement('invCount', game.invCount);
+  updateElement('maxInv', game.maxInventory); // CR-10
+}
+
+function updateInventoryUpgradeButton() {
+    const btn = document.getElementById('upgradeInvBtn');
+    const level = game.inventoryUpgradeLevel;
+    const nextMax = MAX_INVENTORY_UPGRADES[level];
+    const cost = MAX_INVENTORY_UPGRADE_COSTS[level];
+
+    if (level >= MAX_INVENTORY_UPGRADES.length) {
+        btn.disabled = true;
+        btn.textContent = '🎒 背包已升級至頂級！';
+    } else {
+        btn.disabled = game.gold < cost;
+        updateElement('nextMaxInv', nextMax);
+        updateElement('upgradeCost', cost);
+        btn.title = btn.disabled ? "金幣不足！" : `花費 ${cost} G 擴展至 ${nextMax}`;
+        btn.textContent = `🎒 擴展背包至 ${nextMax} (費用：${cost} G)`;
+    }
+}
+
+function upgradeInventory() { // CR-10: Upgrade logic
+    const level = game.inventoryUpgradeLevel;
+    if (level >= MAX_INVENTORY_UPGRADES.length) return;
+
+    const cost = MAX_INVENTORY_UPGRADE_COSTS[level];
+    const nextMax = MAX_INVENTORY_UPGRADES[level];
+
+    if (game.gold >= cost) {
+        game.gold -= cost;
+        game.maxInventory = nextMax;
+        game.inventoryUpgradeLevel++;
+        addLog(`🎒 背包空間擴展成功！最大容量提升至 ${nextMax}！`, 'success');
+    } else {
+        addLog(`金幣不足！擴展背包需要 ${cost} G。`, 'fail');
+    }
+    renderGameState();
+}
+
+
+// --- 疲勞與探索按鈕 (修復 BUG 1) ---
+function updateExploreButtons() {
+  const isFatigued = game.fatigue >= MAX_FATIGUE;
+  const isFull = game.invCount >= game.maxInventory;
+  
+  document.getElementById('fatigueWarning').style.display = game.fatigue >= 15 && !isFatigued ? 'inline' : 'none';
+
+  const buttons = ['wind','fire','water','earth'];
+  buttons.forEach(area => {
+    const btn = document.getElementById('btn-'+area);
+    if (btn) {
+      btn.disabled = isFatigued || isFull;
+      if (isFatigued) {
+        btn.title = "今日已疲勞，請明天再探索";
+      } else if (isFull) {
+        btn.title = "背包已滿，請先整理";
+      } else {
+        btn.title = "";
+      }
+    }
+  });
+
+  if (isFatigued && !game.loggedFatigueFull) {
+    addLog("你已經累壞了…今天無法再探索了。", 'fail');
+    game.loggedFatigueFull = true;
+  }
+  
+  // 檢查背包是否剛滿（CR 5 解決）
+  if (isFull && !game.loggedInvFull) {
+      addLog("你的背包滿了！先賣掉或丟棄一些東西才能繼續探索。", 'fail');
+      game.loggedInvFull = true;
+  } else if (!isFull) {
+      game.loggedInvFull = false; // 重置滿載旗標
+  }
+}
+
+// --- 日誌系統 (CR-8: 自動滾動到頂部) ---
+function addLog(text, type = 'normal') {
+  const log = document.getElementById('log');
+  const entry = document.createElement('div');
+  entry.className = `log-entry ${type}`;
+  entry.innerHTML = `✎ 第${game.day}天・${text}`;
+  
+  // CR-8: Prepend to achieve scroll-to-top visual effect on new logs with flex-direction: column-reverse
+  log.prepend(entry);
+  
+  // 清理舊日誌
+  if (log.children.length > 50) log.removeChild(log.lastChild); 
+}
+
+function clearLog() {
+  document.getElementById('log').innerHTML = '';
+}
+
+// --- 存檔功能 (BUG-2 Fix: 徹底重置遊戲) --- 
+function showSaveStatus(text) {
+  const statusEl = document.getElementById('saveStatus');
+  statusEl.textContent = text;
+  statusEl.style.display = 'inline';
+  setTimeout(() => statusEl.style.display = 'none', 3000);
+}
+
+							  
+function openClearSaveModal() {
+    document.getElementById('confirmModal').style.display = 'flex';
+}
+
+function clearSaveConfirmed(isConfirmed) {
+    document.getElementById('confirmModal').style.display = 'none';
+    if (isConfirmed) {
+        // BUG-2 Fix: Use deep copy of INITIAL_GAME_STATE for complete reset
+        game = JSON.parse(JSON.stringify(INITIAL_GAME_STATE)); 
+        localStorage.removeItem('potionShopSave'); // 清除本地存檔
+        init(); // Re-initialize game state and UI
+        addLog('所有記錄已清除，魔藥店重新開張！', 'fail');
+    } else {
+        addLog('取消清除進度。', 'normal');
+    }
+}
+
+function saveGame() {
+  const data = JSON.stringify(game, null, 2);
+  const blob = new Blob([data], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const now = new Date();
+  const timestamp = now.toISOString().slice(0,19).replace(/[-:T]/g,'');
+  a.href = url;
+  a.download = `Alchemy_Adventure_Save_${timestamp}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showSaveStatus('存檔已匯出到您的裝置！');
+}
+
+function loadGame() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const loadedGame = JSON.parse(ev.target.result);
+        // Basic validation for core properties
+        if (loadedGame.gold !== undefined && loadedGame.day !== undefined) {
+          game = loadedGame;
+          // Ensure new properties are initialized if loading an old save
+          game.currentQuest = game.currentQuest || null;
+																  
+          game.dailyEvent = game.dailyEvent && game.dailyEvent.riskModifier ? game.dailyEvent : DAILY_EVENTS.find(e => e.type === 'normal');
+		   
+          game.loggedFatigueFull = game.loggedFatigueFull || false;
+          game.loggedInvFull = game.loggedInvFull || false;
+          game.maxInventory = game.maxInventory || INITIAL_GAME_STATE.maxInventory; // CR-10
+          game.inventoryUpgradeLevel = game.inventoryUpgradeLevel || INITIAL_GAME_STATE.inventoryUpgradeLevel; // CR-10
+          
+          renderGameState();
+          addLog('存檔載入成功！魔藥店繼續營業！', 'success');
+          showSaveStatus('已讀取存檔！');
+        } else {
+          throw new Error("Invalid structure");
+        }
+      } catch (err) {
+        addLog('存檔格式錯誤或已損壞，無法載入。', 'fail');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+function autoSave() {
+  try {
+    localStorage.setItem('potionShopSave', JSON.stringify(game));
+  } catch (e) {
+    console.error("Auto-save failed:", e);
+  }
+}
+
+// --- 渲染函數 ---
+
+function getSortedInventoryItems() { // CR-7: 按屬性排序
+    return Object.keys(game.inventory)
+        .filter(item => game.inventory[item] > 0)
+        .sort((a, b) => {
+            const dataA = ITEM_DATA[a];
+            const dataB = ITEM_DATA[b];
+            return dataA.sortOrder - dataB.sortOrder; // 使用 ITEM_DATA 裡的 sortOrder
+        });
+}
+
+function renderInventory() {
+  const inv = document.getElementById('inventory');
+  inv.innerHTML = '';
+  
+  let count = 0;
+  const sortedItems = getSortedInventoryItems(); // CR-7: Use sorted list
+
+  for (let item of sortedItems) {
+    const qty = game.inventory[item];
+    const data = ITEM_DATA[item];
+    if (qty > 0) {
+      count += qty;
+      const div = document.createElement('div');
+      // CR-7: Add element-based class for styling
+      div.className = `item shadow-sm hover:shadow-lg transition-shadow element-${data.element}`;
+      
+      // CR-5: Simplified Discard Button and direct click to cauldron
+      div.innerHTML = `
+        <button class="action-btn discard" onclick="discardMaterial('${item}')" title="丟棄 1 個素材">
+            -
+        </button>
+        <div class="item-content">
+            <div class="item-info" onclick="addToCauldron('${item}')" title="點擊放入鍋爐">
+                ${data.icon} ${item} <span class="font-bold">× ${qty}</span>
+            </div>
+									  
+																																															  
+					 
+						 
+				  
+        </div>
+      `;
+      
+      inv.appendChild(div);
+    }
+  }
+  game.invCount = count;
+  updateElement('invCount', count);
+  updateElement('maxInv', game.maxInventory); // CR-10
+}
+
+function discardMaterial(item) {
+    if (game.inventory[item] > 0) {
+        game.inventory[item]--;
+        game.invCount--;
+        if (game.inventory[item] === 0) {
+            delete game.inventory[item];
+        }
+        addLog(`你丟棄了 1 份「${item}」，背包空間清出了一些。`, 'normal');
+        renderGameState();
+    }
+}
+
+function renderPotions() {
+  const list = document.getElementById('potionsList');
+  list.innerHTML = '';
+
+  // CR-11: Use the predefined order for potions
+  const sortedPotions = POTION_KEYS_ORDERED.filter(p => (game.potions[p]||0) > 0);
+  
+  for (let potion of sortedPotions) {
+    const qty = game.potions[potion];
+    const data = ITEM_DATA[potion];
+    if (qty > 0) {
+      const div = document.createElement('div');
+      div.className = 'potion item shadow-sm hover:shadow-lg transition-shadow';
+      
+														  
+      div.innerHTML = `
+        <div class="potion-info text-center">
+            ${potion} × ${qty}
+       
+        </div>
+        <button class="potion-sell-btn" onclick="sellPotion('${potion}', ${data.basePrice})">
+            販售 (${data.basePrice} G)
+        </button>
+      `;
+      list.appendChild(div);
+    }
+  }
+}
+
+function renderCauldron() {
+  const cauldronEl = document.getElementById('cauldron-area');
+  cauldronEl.innerHTML = '';
+  if (game.cauldron.length === 0) {
+    cauldronEl.innerHTML = '<span class="text-gray-400 text-lg">鍋爐空空如也...</span>';
+  } else {
+    game.cauldron.forEach(item => {
+      const data = ITEM_DATA[item];
+      const div = document.createElement('div');
+      div.className = 'cauldron-item';
+      div.textContent = `${data.icon} ${item}`;
+      cauldronEl.appendChild(div);
+    });
+  }
+}
+
+function checkMaterialsAvailable(ingredients) {
+    const required = ingredients.reduce((acc, mat) => {
+        acc[mat] = (acc[mat] || 0) + 1;
+        return acc;
+    }, {});
+
+    for (const mat in required) {
+        if ((game.inventory[mat] || 0) < required[mat]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function renderRecipes() {
+  const rec = document.getElementById('recipes');
+  rec.innerHTML = '';
+  
+  // CR-11: Use the predefined order for recipes display as well
+  for (let key of POTION_KEYS_ORDERED) {
+    const recipe = ITEM_DATA[key];
+								   
+    const isKnown = game.knownRecipes.includes(key);
+    const ingredients = recipe.ingredients.slice().sort();
+    const [mat1, mat2] = ingredients;
+    
+    const mat1Icon = ITEM_DATA[mat1] ? ITEM_DATA[mat1].icon : '?';
+    const mat2Icon = ITEM_DATA[mat2] ? ITEM_DATA[mat2].icon : '?';
+    
+    const entryDiv = document.createElement('div');
+    entryDiv.className = 'recipe-entry';
+
+    let textHtml = `<span class="${isKnown ? 'recipe-known' : 'recipe-unknown'} recipe-text">• `;
+    textHtml += `${mat1Icon} ${mat1} + ${mat2Icon} ${mat2} → `;
+    textHtml += `<span class="font-bold">${isKnown ? key : '???'}</span> `;
+    
+    if (isKnown) {
+        //textHtml += `<span class="tier-display tier-${recipe.tier}">T${recipe.tier}</span>`;
+        textHtml += ` (${recipe.basePrice}G)`;
+    } else {
+        //textHtml += `(未知 T${recipe.tier})`;
+    }
+    textHtml += `</span>`;
+    
+    entryDiv.innerHTML += textHtml;
+    
+    // CR-9: One-click brew button
+    if (isKnown) {
+        const canBrew = checkMaterialsAvailable(ingredients);
+        const btnHtml = `<div class="recipe-action">
+            <button onclick="brewFromRecipe('${key}')" ${canBrew ? '' : 'disabled'} title="${canBrew ? '一鍵合成' : '缺少材料'}">
+                ${canBrew ? '合成' : '缺料'}
+            </button>
+        </div>`;
+        entryDiv.innerHTML += btnHtml;
+    }
+
+    rec.appendChild(entryDiv);
+  }
+}
+
+function renderQuest() {
+  const questEl = document.getElementById('quest');
+  
+  // If no quest, try to generate one.
+  if (!game.currentQuest) {
+    generateQuest();
+  }
+  
+  if (!game.currentQuest) {
+     questEl.innerHTML = '<p class="text-gray-500">暫無新委託。也許可以先製作一些庫存？</p>';
+     return;
+  }
+  
+  const { neededPotion, reward, requestText } = game.currentQuest;
+  const potionData = ITEM_DATA[neededPotion];
+//  const tierDisplay = `<span class="tier-display tier-${potionData.tier}">T${potionData.tier}</span>`;
+  
+  const hasPotion = (game.potions[neededPotion] || 0) > 0;
+
+  questEl.innerHTML = `
+    <p><strong>${requestText}</strong><br>
+    要求：<span class="font-bold text-red-700">${neededPotion}</span> ×1<br>
+    報酬：<span class="gold text-xl">${reward}</span> G</p>
+    <button onclick="completeQuest('${neededPotion}',${reward})" class="mt-2 bg-yellow-500 hover:bg-yellow-600" ${hasPotion ? '' : 'disabled'}>
+        ✨ 交付委託 ${hasPotion ? '' : '(缺少藥水)'}
+    </button>
+  `;
+  
+  // Display daily event info
+  const exploreInfoEl = document.getElementById('explore-info');
+  if (game.dailyEvent && game.dailyEvent.type !== 'normal') {
+      exploreInfoEl.innerHTML = `<strong>今日事件：</strong>${game.dailyEvent.description}`;
+  } else {
+      exploreInfoEl.innerHTML = `今天風平浪靜，一切如常。`;
+  }
+}
+
+// --- 遊戲邏輯 ---
+
+function explore(area) {
+  if (game.fatigue >= MAX_FATIGUE) {
+    addLog("你已經累壞了！今天無法再探索了。", 'fail');
+    return;
+  }
+  if (game.invCount >= game.maxInventory) { // CR-10: Use maxInventory
+    addLog("背包已滿！先整理一下再出發。", 'fail');
+    return;
+  }
+  
+  // 獲取探索事件乘數
+  let fatigueMultiplier = 1.0;
+  let riskMultiplier = 1.0;
+
+  if (game.dailyEvent && game.dailyEvent.type === 'explore_event') {
+      fatigueMultiplier = game.dailyEvent.fatigueModifier(area);
+      riskMultiplier = game.dailyEvent.riskModifier(area);
+  }
+  
+  // 疲勞消耗
+  game.fatigue += 1 * fatigueMultiplier;
+  game.fatigue = Math.min(game.fatigue, MAX_FATIGUE);
+
+  const names = {wind: "疾風草原", fire: "烈焰火山", water: "深海湖泊", earth: "大地森林"};
+  const materialNames = materialsByArea[area]; // 獲取所有材料名稱
+
+  
+  // --- 資源稀有度加權選擇 (優化方案修正) ---
+  let selectedItem = null;
+  let totalWeight = 0;
+  
+  // 1. 計算權重總和與創建加權列表
+  const weightedList = materialNames.map(name => {
+      const data = ITEM_DATA[name];
+      let weight;
+      if (data.tier === 1) weight = 5;
+      else if (data.tier === 2) weight = 3;
+      else weight = 2; // T3
+      
+      totalWeight += weight;
+      return { name: name, weight: weight };
+  });
+
+  // 2. 進行隨機抽取
+  let randWeight = Math.random() * totalWeight;
+  let cumulativeWeight = 0;
+  
+  for (let item of weightedList) {
+      cumulativeWeight += item.weight;
+      if (randWeight < cumulativeWeight) {
+          selectedItem = item.name; // 正確獲取材料名稱 (物件鍵)
+          break;
+      }
+  }
+
+  // --- 疲勞與探索失敗判斷 ---
+  let yieldItem = true;
+  const baseFailureChance = 0.3;
+  const failureChance = baseFailureChance * riskMultiplier;
+
+  if (game.fatigue >= 15 && Math.random() < failureChance) { 
+    addLog(`你在${names[area]}感到頭暈目眩，一無所獲。`, 'fail');
+    yieldItem = false;
+  }
+  
+  // --- 獲取道具並更新狀態 ---
+  if (yieldItem && selectedItem) {
+    game.inventory[selectedItem] = (game.inventory[selectedItem]||0) + 1;
+    game.invCount += 1;
+    
+    // Log story
+    const areaStories = exploreStories[area];
+    const areaText = areaStories[Math.floor(Math.random()*areaStories.length)];
+    const itemStory = ITEM_DATA[selectedItem].story;
+    addLog(`你在${names[area]}探索：${areaText} 你發現了「${ITEM_DATA[selectedItem].icon} ${selectedItem}」！(${itemStory})`, 'normal');
+  } else if (!yieldItem) {
+    // Still costs fatigue but no item found on risk
+    addLog(`你在${names[area]}感到非常疲憊，沒有採集到任何東西。`);
+  }
+  
+  renderGameState();
+}
+function addToCauldron(item) {
+  if (game.cauldron.length >= 2) {
+    addLog("鍋子裡已經有兩種素材了！趕快熬煮吧。", 'fail');
+    return;
+  }
+  
+  if (game.inventory[item] > 0) {
+    // 檢查是否已存在於鍋中 (不允許重複放入同一素材)
+    if (game.cauldron.includes(item)) {
+        addLog(`「${item}」已經在鍋子裡了，請放入不同的素材。`, 'fail');
+        return;
+    }
+
+    game.inventory[item]--;
+    game.invCount--;
+    game.cauldron.push(item);
+    addLog(`把「${ITEM_DATA[item].icon} ${item}」輕輕丟進了鍋子…`, 'normal');
+    renderGameState();
+  } else {
+    addLog(`背包裡沒有「${item}」了。`, 'fail');
+  }
+}
+
+function brewFromRecipe(potionKey) { // CR-9: One-click brew logic
+    const ingredients = ITEM_DATA[potionKey].ingredients;
+
+    if (game.cauldron.length > 0) {
+        addLog("請先清空鍋子，才能使用一鍵合成。", 'fail');
+        return;
+    }
+
+    if (!checkMaterialsAvailable(ingredients)) {
+        addLog("缺少配方所需材料，無法合成。", 'fail');
+        return;
+    }
+
+    // 扣除材料
+    ingredients.forEach(item => {
+        game.inventory[item]--;
+        game.invCount--;
+        if (game.inventory[item] === 0) {
+            delete game.inventory[item];
+        }
+    });
+
+    // 執行合成邏輯 (不需要放入 cauldron，直接合成)
+    const successPotion = ITEM_DATA[potionKey];
+    
+    game.potions[potionKey] = (game.potions[potionKey]||0) + 1;
+    
+    // [新機制] 發現配方
+    if (!game.knownRecipes.includes(potionKey)) {
+      game.knownRecipes.push(potionKey);
+      addLog(`✨ **恭喜！你發現了新配方：「${potionKey} (T${successPotion.tier})」！** (價值 ${successPotion.basePrice} G)`, 'success');
+    }
+    
+    addLog(`🔥 成功熬煮！(一鍵合成) ${successPotion.brewText} 獲得「${potionKey}」！`, 'success');
+    
+    renderGameState();
+}
+
+function brew() {
+  if (game.cauldron.length === 0) {
+    addLog("鍋子裡什麼都沒有！你到底想煮什麼？", 'fail');
+    return;
+  }
+  if (game.cauldron.length !== 2) {
+    addLog("鍋子裡的素材不是剛好兩種…感覺會爆炸的樣子！", 'fail');
+    return;
+  }
+
+  const [a, b] = game.cauldron.slice().sort();
+  
+  let successPotion = null;
+  let potionKey = null;
+
+  // 查找配方
+  for (const key of POTION_KEYS_ORDERED) {
+    const item = ITEM_DATA[key];
+								 
+    const needed = item.ingredients.slice().sort();
+    if (needed[0] === a && needed[1] === b) {
+      successPotion = item;
+      potionKey = key;
+      break;
+	   
+    }
+  }
+
+  if (successPotion) {
+    game.potions[potionKey] = (game.potions[potionKey]||0) + 1;
+    
+    // [新機制] 發現配方
+    if (!game.knownRecipes.includes(potionKey)) {
+      game.knownRecipes.push(potionKey);
+      addLog(`✨ **恭喜！你發現了新配方：「${potionKey}」！** (價值 ${successPotion.basePrice} G)`, 'success');
+    }
+    
+    addLog(`🔥 成功熬煮！${successPotion.brewText} 獲得「${potionKey}」！`, 'success');
+					  
+  } else {
+    // 失敗 - 懲罰
+    const failText = brewFail[Math.floor(Math.random()*brewFail.length)];
+    game.gold = Math.max(0, game.gold - 5);
+    addLog(`💥 熬煮失敗！${failText} 你浪費了素材，還損失了 5 G！`, 'fail');
+  }
+  
+  game.cauldron = [];
+  renderGameState();
+}
+
+
+function clearCauldron() {
+  if (game.cauldron.length === 0) {
+    addLog("鍋子已經空空的啦～");
+  } else {
+    // 返還所有素材到背包
+    game.cauldron.forEach(item => {
+      if (game.invCount < game.maxInventory) { // Only return if space is available
+        game.inventory[item] = (game.inventory[item]||0) + 1;
+        game.invCount++;
+      } else {
+         addLog(`背包已滿！無法返還「${item}」，素材遺失。`, 'fail');
+      }
+    });
+    game.cauldron = [];
+    addLog("你把鍋子裡的東西倒了出來，素材全部放回背包了。", 'normal');
+    renderGameState();
+  }
+}
+
+function sellPotion(potion, price) {
+  if ((game.potions[potion]||0) > 0) {
+    game.potions[potion]--;
+    game.gold += price;
+    addLog(`你成功將 1 份「${potion}」以 ${price} G 的價格賣給了路人。`, 'normal');
+    renderGameState();
+  } else {
+    addLog(`你沒有「${potion}」可以販售。`, 'fail');
+  }
+}
+
+// --- 任務與經營 (優化：動態報酬與故事) ---
+function generateQuest() {
+  if (game.currentQuest) {
+    // renderQuest() 會在 renderGameState() 中被呼叫
+    return; 
+  }
+  
+  const potentialQuests = POTION_KEYS_ORDERED; // Use the ordered list
+  const neededPotion = potentialQuests[Math.floor(Math.random() * potentialQuests.length)];
+  const potionData = ITEM_DATA[neededPotion];
+  const questEvent = QUEST_EVENTS[neededPotion];
+  
+  // 計算動態報酬：基礎價格 * (1.2 ~ 1.5 溢價) * 事件乘數
+  let eventMultiplier = 1.0;
+											 
+  if (game.dailyEvent && game.dailyEvent.rewardModifier) {
+      eventMultiplier = game.dailyEvent.rewardModifier(potionData);
+  }
+  
+  const basePrice = potionData.basePrice;
+  const rewardMultiplier = (1.2 + Math.random() * 0.3) * eventMultiplier;
+  const reward = Math.round(basePrice * rewardMultiplier / 5) * 5; // Round to nearest 5
+
+  game.currentQuest = {
+    neededPotion,
+    reward,
+    requestText: questEvent.request
+  };
+  
+				
+}
+
+function completeQuest(potion, reward) {
+  if (!game.currentQuest || game.currentQuest.neededPotion !== potion) {
+     addLog("任務狀態錯誤，請重新整理！", 'fail');
+     return;
+  }
+  
+  if ((game.potions[potion]||0) > 0) {
+    game.potions[potion]--;
+    game.gold += reward;
+    game.fame += ITEM_DATA[potion].tier; // 根據藥水稀有度增加聲望
+    
+    // 隨機專屬成功故事
+    const successStories = QUEST_EVENTS[potion].success;
+    const story = successStories[Math.floor(Math.random() * successStories.length)];
+    
+    addLog(`✨ 委託成功！獲得 ${reward} G。${story} (聲望 +${ITEM_DATA[potion].tier})`, 'success');
+    game.currentQuest = null; // 清除任務狀態
+  } else {
+    // 失敗故事
+    const failStory = QUEST_EVENTS[potion].fail;
+    addLog(`哎呀…你沒有客人要的「${potion}」。委託失敗！${failStory}`, 'fail');
+    game.currentQuest = null; // 清除任務狀態
+  }
+  
+  renderGameState();
+}
+
+function triggerDailyEvent() {
+    // 30% chance to trigger a non-normal event
+    const nonNormalEvents = DAILY_EVENTS.filter(e => e.type !== 'normal');
+    if (Math.random() < 0.7 && nonNormalEvents.length > 0) {
+        // Trigger a random non-normal event
+        game.dailyEvent = nonNormalEvents[Math.floor(Math.random() * nonNormalEvents.length)];
+    } else {
+        // Trigger the normal event
+        game.dailyEvent = DAILY_EVENTS.find(e => e.type === 'normal');
+    }
+
+    addLog(`📢 ${game.dailyEvent.name}: ${game.dailyEvent.description}`, 'event');
+}
+
+function nextDay() {
+  game.day++;
+  game.fatigue = 0; // 每日重置疲勞
+  game.currentQuest = null; // 清除舊任務，等待生成新任務
+  game.loggedFatigueFull = false; // 重置疲勞日誌旗標 (BUG 1)
+  
+  triggerDailyEvent(); // 每日事件
+
+  // 每日金幣消耗（例：租金）
+  if (game.gold >= 10) {
+     game.gold -= 10;
+     addLog("💸 支付了今日的店舖租金 10 G。", 'normal');
+  } else {
+     addLog("💸 今天沒賺什麼錢... 但你還是找到方法支付了租金。", 'normal');
+  }
+  
+  addLog(newDayStories[Math.floor(Math.random()*newDayStories.length)]);
+  
+  renderGameState(); // renderGameState calls generateQuest if currentQuest is null
+}
+
+// --- 初始化與載入 ---
+function init() {
+  clearLog();
+  try {
+    const savedGame = localStorage.getItem('potionShopSave');
+    if (savedGame) {
+      const loadedGame = JSON.parse(savedGame);
+      // Ensure all new/missing properties exist after loading
+      game = Object.assign(JSON.parse(JSON.stringify(INITIAL_GAME_STATE)), loadedGame);
+
+      // Re-initialize event data structure if needed
+																		  
+      game.dailyEvent = game.dailyEvent && game.dailyEvent.riskModifier ? game.dailyEvent : DAILY_EVENTS.find(e => e.type === 'normal');
+	   
+									 
+																													   
+																										   
+      
+      // CR-10: Set initial max inventory if old save doesn't have it
+      game.maxInventory = game.maxInventory || INITIAL_GAME_STATE.maxInventory; 
+      game.inventoryUpgradeLevel = game.inventoryUpgradeLevel || INITIAL_GAME_STATE.inventoryUpgradeLevel;
+
+      addLog("偵測到自動存檔，已自動載入進度。", 'normal');
+    } else {
+      // New Game Setup
+      game = JSON.parse(JSON.stringify(INITIAL_GAME_STATE)); // Fallback to clean state
+      game.dailyEvent = DAILY_EVENTS.find(e => e.type === 'normal');
+      addLog("今天是新開張的一天，希望會有冒險者來委託吧…加油！", 'success');
+    }
+  } catch (e) {
+    console.error("Failed to load game from localStorage:", e);
+    addLog("載入存檔時發生錯誤，將從新遊戲開始。", 'fail');
+    game = JSON.parse(JSON.stringify(INITIAL_GAME_STATE)); // Fallback to clean state
+  }
+  
+  renderGameState();
+}
+
+// 啟動遊戲
+window.onload = init;
+</script>
+</body>
+</html>
