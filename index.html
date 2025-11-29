@@ -215,7 +215,7 @@
       <span class="p-2 bg-yellow-100 rounded-full shadow-md">💰 金幣：<span id="gold" class="gold">50</span> G</span>
       <span class="p-2 bg-blue-100 rounded-full shadow-md">📅 日數：<span id="day">1</span></span>
       <span class="p-2 bg-purple-100 rounded-full shadow-md">✨ 聲望：<span id="fame">0</span> ✦</span>
-      <span class="p-2 bg-red-100 rounded-full shadow-md">🥵 疲勞：<span id="fatigue">0</span>/<span id="maxFatigue">20</span></span>
+      <span class="p-2 bg-red-100 rounded-full shadow-md">🥵 疲勞：<span id="fatigue">0</span>/<span id="maxFatigue">30</span></span>
     </div>
     <div class="mt-4">
       <button onclick="saveGame()">💾 匯出存檔</button>
@@ -579,7 +579,7 @@ const newDayStories = [
   
 
 const BASE_MAX_INVENTORY = 30;
-const MAX_FATIGUE = 20;
+const MAX_FATIGUE = 30;
 
 const INITIAL_GAME_STATE = {
     gold: 50,
@@ -685,7 +685,7 @@ function updateExploreButtons() {
   const isFatigued = game.fatigue >= MAX_FATIGUE;
   const isFull = game.invCount >= game.maxInventory;
   
-  document.getElementById('fatigueWarning').style.display = game.fatigue >= 15 && !isFatigued ? 'inline' : 'none';
+  document.getElementById('fatigueWarning').style.display = game.fatigue >= 25 && !isFatigued ? 'inline' : 'none';
 
   const buttons = ['wind','fire','water','earth'];
   buttons.forEach(area => {
@@ -1091,7 +1091,7 @@ function explore(area) {
   const baseFailureChance = 0.3;
   const failureChance = baseFailureChance * riskMultiplier;
 
-  if (game.fatigue >= 15 && Math.random() < failureChance) { 
+  if (game.fatigue >= 25 && Math.random() < failureChance) { 
     addLog(`你在${names[area]}感到頭暈目眩，一無所獲。`, 'fail');
     yieldItem = false;
   }
