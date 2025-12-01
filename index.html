@@ -237,12 +237,12 @@
 /* 角色圖片層 (置中、疊加) */
   .cat-layer-img {
     position: absolute; 
-    bottom: 0; 
+    bottom: 30px; 
     left: 50%;
     transform: translateX(-50%);
     width: 50%; /* 根據你的圖片大小調整，這裡設為畫面寬度的 35% */
     max-height: 100%;
-    z-index: 10;
+    z-index: 50;
     display: flex;
     justify-content: center;
     align-items: flex-end;
@@ -250,11 +250,12 @@
   }
 /* 文字提示 */
   .scene-text {
-    position: absolute; bottom: 20px; left: 0; right: 0;
+    position: absolute;  left: 0; right: 0;bottom: 0;
     text-align: center; color: white;
     font-size: 1.5rem; font-weight: bold;
     text-shadow: 0 2px 4px rgba(0,0,0,0.8);
     opacity: 0; transition: opacity 0.5s;
+
   }
 </style>
 </head>
@@ -262,7 +263,7 @@
 
 <div class="container">
   <header>
-    <h1>鍊金店的發現之旅</h1>
+    <h1>簡單魔藥店經營遊戲</h1>
     <p class="text-sm text-gray-600 mb-3">文字魔藥店優化版：探索、實驗、經營</p>
     <div class="flex flex-wrap justify-center items-center gap-4 text-lg">
       <span class="p-2 bg-yellow-100 rounded-full shadow-md">💰 金幣：<span id="gold" class="gold">50</span> G</span>
@@ -1146,25 +1147,25 @@ function playExplorationScene(area, isSuccess, callback) {
     // 3. 顯示表情與文字 (延遲 0.8秒)
     setTimeout(() => {
         if (isSuccess) {
-            emotion.textContent = '✨';
+            //emotion.textContent = '✨';
             emotion.style.color = '#ffeb3b';
             text.textContent = "發現了有趣的素材！";
 			
         } else {
-            emotion.textContent = '❓';
+            //emotion.textContent = '❓';
             emotion.style.color = '#e0e0e0';
             text.textContent = "這裡似乎什麼都沒有...";
         }
         
         emotion.classList.add('show-icon');
         text.style.opacity = '1';
-    }, 1000);
+    }, 800);
 
     // 4. 結束過場 (總時長約 3.5 秒)
     setTimeout(() => {
         modal.style.display = 'none';
         callback();
-    }, 3500);
+    }, 2500);
 }
 // --- 遊戲邏輯 ---
 
