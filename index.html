@@ -203,6 +203,59 @@
   .element-Water { background-color: #e0f7fa; border-color: #80deea; }
   .element-Earth { background-color: #fbe9e7; border-color: #ffab91; }
 
+/* --- CR-12: Exploration Cutscene Styles --- */
+  #exploration-modal {
+    position: fixed; inset: 0; z-index: 2000;
+    background: rgba(15, 11, 9, 0.9);
+    display: none; justify-content: center; align-items: center;
+    backdrop-filter: blur(5px);
+  }
+  
+  .scene-container {
+    width: 90%; max-width: 1000px;
+    aspect-ratio: 16/9;
+    position: relative;
+    background: #000;
+    border: 8px solid #4e342e;
+    border-radius: 12px;
+    box-shadow: 0 0 30px rgba(0,0,0,0.8);
+    overflow: hidden;
+  }
+
+  /* 背景層：使用濾鏡模擬水彩/柔和感 */
+.scene-bg {
+    width: 100%; height: 100%;
+    background-size: cover;
+    background-position: center;
+    position: absolute; inset: 0;
+    filter: contrast(0.9) brightness(1.1) sepia(0.2) saturate(0.8);
+    transition: transform 10s linear;
+    transform: scale(1);
+  }
+  .anim-bg-move { transform: scale(1.1); }
+
+/* 角色圖片層 (置中、疊加) */
+  .cat-layer-img {
+    position: absolute; 
+    bottom: 0; 
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50%; /* 根據你的圖片大小調整，這裡設為畫面寬度的 35% */
+    max-height: 100%;
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    pointer-events: none; /* 讓點擊穿透 */
+  }
+/* 文字提示 */
+  .scene-text {
+    position: absolute; bottom: 20px; left: 0; right: 0;
+    text-align: center; color: white;
+    font-size: 1.5rem; font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+    opacity: 0; transition: opacity 0.5s;
+  }
 </style>
 </head>
 <body>
@@ -234,7 +287,7 @@
       <div class="flex flex-wrap gap-2 mb-4">
         <button onclick="explore('wind')" id="btn-wind">🌬️ 疾風草原</button>
         <button onclick="explore('fire')" id="btn-fire">🔥 烈焰火山</button>
-        <button onclick="explore('water')" id="btn-water">💧 深海湖泊</button>
+        <button onclick="explore('water')" id="btn-water">💧 月見湖泊</button>
         <button onclick="explore('earth')" id="btn-earth">🌍 大地森林</button>
       </div>
       
@@ -298,6 +351,18 @@
   </div>
 </div>
 
+<div id="exploration-modal">
+  <div class="scene-container">
+    <div id="scene-bg" class="scene-bg"></div>
+    
+    <div class="cat-layer-img">
+        <div id="cat-emotion" class="emotion-icon"></div>
+        <img id="scene-cat-img" class="cat-img" src="" alt="Cat Adventure">
+    </div>
+
+    <div id="scene-text" class="scene-text"></div>
+  </div>
+</div>
 
 <script>
 // --- 數據結構重構：統一數據源 (ITEM_DATA) (CR-4 + BUG-4 Fix)---
@@ -316,7 +381,7 @@ const ITEM_DATA = {
   "紅炎花瓣": { tier: 2, type: 'Flower', basePrice: 20, icon: '🌸', story: "赤紅的花瓣散發微微暖意。", element: 'Fire', sortOrder: 7 },
   "火蜥蜴尾": { tier: 3, type: 'Monster', basePrice: 30, icon: '🦎', story: "尾端仍殘留微弱熱度，極具價值。", element: 'Fire', sortOrder: 8 }, // BUG-4 Material
 
-  // WATER 💧 (深海湖泊)
+  // WATER 💧 (月見湖泊)
   "冰雪蘑菇": { tier: 1, type: 'Fungus', basePrice: 10, icon: '🍄', story: "帶有淡淡光暈，湖畔的基礎素材。", element: 'Water', sortOrder: 9 },
   "水蓮": { tier: 1, type: 'Flower', basePrice: 15, icon: '💧', story: "散發清新的香氣，像湖面清晨的空氣。", element: 'Water', sortOrder: 10 },
   "星露水": { tier: 2, type: 'Liquid', basePrice: 20, icon: '✨', story: "映出微小星光，像裝著一片夜空。", element: 'Water', sortOrder: 11 },
@@ -440,7 +505,7 @@ const DAILY_EVENTS = [
     },
 	{
         name: "火山和湖泊資源大豐收",
-        description: "今日烈焰火山和深海湖泊的探索，疲勞消耗減半！",
+        description: "今日烈焰火山和月見湖泊的探索，疲勞消耗減半！",
         rewardModifier: () => 1.0,
         fatigueModifier: (area) => (area === 'fire' || area === 'water') ? 0.5 : 1.0,
         riskModifier: () => 1.0,
@@ -472,7 +537,7 @@ const DAILY_EVENTS = [
     },
 	    {
         name: "湖泊乾涸",
-        description: "連日來的乾旱令湖泊陷入乾涸，今日探索深海湖泊失敗的風險提高 30%！",
+        description: "連日來的乾旱令湖泊陷入乾涸，今日探索月見湖泊失敗的風險提高 30%！",
         rewardModifier: () => 1.0,
         fatigueModifier: () => 1.0,
         riskModifier: (area) => area === 'water' ? 1.3 : 1.0,
@@ -495,6 +560,8 @@ const materialsByArea = {
   water: ["冰雪蘑菇", "水蓮", "星露水", "人魚鱗片"],
   earth: ["月光草", "粗糙礦石", "龍息草", "螢光石"]
 };
+
+
 
 // --- 遊戲平衡：背包擴展費用 (CR-10) ---
 const MAX_INVENTORY_UPGRADES = [40, 50, 65, 80, 100];
@@ -1028,7 +1095,77 @@ function renderQuest() {
       exploreInfoEl.innerHTML = `今天風平浪靜，一切如常。`;
   }
 }
+// --- CR-12: Exploration Scene Logic (Image Version) ---
 
+// [設定] 請在這裡替換成你自己的透明背景 PNG 圖片連結
+const CAT_IMAGES_SRC = {
+    // 成功時的圖片 (例如：貓咪舉著戰利品，或開心的樣子)
+    success: "https://raw.githubusercontent.com/tcchoy/potion_shop_adventure_story/refs/heads/main/Wild_Collection_Success.png", 
+    // 失敗時的圖片 (例如：貓咪疑惑，或空手而歸的樣子)
+    fail: "https://raw.githubusercontent.com/tcchoy/potion_shop_adventure_story/refs/heads/main/Wild_Collection_Fail2.png"   
+};
+
+
+// 背景圖 (維持原本設定)
+const SCENE_IMAGES = {
+    wind: "https://raw.githubusercontent.com/tcchoy/potion_shop_adventure_story/refs/heads/main/map-wind.png",
+    fire: "https://raw.githubusercontent.com/tcchoy/potion_shop_adventure_story/refs/heads/main/map-fire.png",
+    water: "https://raw.githubusercontent.com/tcchoy/potion_shop_adventure_story/refs/heads/main/map-water2.png",
+    earth: "https://raw.githubusercontent.com/tcchoy/potion_shop_adventure_story/refs/heads/main/map-earth.png"
+};
+
+function playExplorationScene(area, isSuccess, callback) {
+    const modal = document.getElementById('exploration-modal');
+    const bg = document.getElementById('scene-bg');
+    const catImg = document.getElementById('scene-cat-img');
+    const emotion = document.getElementById('cat-emotion');
+    const text = document.getElementById('scene-text');
+    
+    // 1. 初始化場景
+    modal.style.display = 'flex';
+    bg.style.backgroundImage = `url('${SCENE_IMAGES[area]}')`;
+    
+    // 重置動畫狀態
+    bg.classList.remove('anim-bg-move');
+    void bg.offsetWidth; // Trigger reflow
+    bg.classList.add('anim-bg-move'); // 背景開始緩動
+    
+    catImg.classList.remove('cat-enter');
+    emotion.classList.remove('show-icon');
+    text.style.opacity = '0';
+    text.textContent = '';
+
+    // 設定對應圖片
+    catImg.src = isSuccess ? CAT_IMAGES_SRC.success : CAT_IMAGES_SRC.fail;
+
+    // 2. 圖片進場動畫 (延遲 0.2秒)
+    //setTimeout(() => {
+    //    catImg.classList.add('cat-enter'); // 貓咪圖片滑入
+    //}, 200);
+
+    // 3. 顯示表情與文字 (延遲 0.8秒)
+    setTimeout(() => {
+        if (isSuccess) {
+            emotion.textContent = '✨';
+            emotion.style.color = '#ffeb3b';
+            text.textContent = "發現了有趣的素材！";
+			
+        } else {
+            emotion.textContent = '❓';
+            emotion.style.color = '#e0e0e0';
+            text.textContent = "這裡似乎什麼都沒有...";
+        }
+        
+        emotion.classList.add('show-icon');
+        text.style.opacity = '1';
+    }, 1000);
+
+    // 4. 結束過場 (總時長約 3.5 秒)
+    setTimeout(() => {
+        modal.style.display = 'none';
+        callback();
+    }, 3500);
+}
 // --- 遊戲邏輯 ---
 
 function explore(area) {
@@ -1036,12 +1173,12 @@ function explore(area) {
     addLog("你已經累壞了！今天無法再探索了。", 'fail');
     return;
   }
-  if (game.invCount >= game.maxInventory) { // CR-10: Use maxInventory
+  if (game.invCount >= game.maxInventory) {
     addLog("背包已滿！先整理一下再出發。", 'fail');
     return;
   }
   
-  // 獲取探索事件乘數
+  // 1. 計算探索結果 (Logic Phase)
   let fatigueMultiplier = 1.0;
   let riskMultiplier = 1.0;
 
@@ -1049,69 +1186,73 @@ function explore(area) {
       fatigueMultiplier = game.dailyEvent.fatigueModifier(area);
       riskMultiplier = game.dailyEvent.riskModifier(area);
   }
-  
-  // 疲勞消耗
+
+  // 預扣疲勞
   game.fatigue += 1 * fatigueMultiplier;
   game.fatigue = Math.min(game.fatigue, MAX_FATIGUE);
+  updateStatPanel(); // 即時更新疲勞顯示
 
   const names = {wind: "疾風草原", fire: "烈焰火山", water: "深海湖泊", earth: "大地森林"};
-  const materialNames = materialsByArea[area]; // 獲取所有材料名稱
+  const materialNames = materialsByArea[area];
 
+  // 計算是否成功
+  const baseFailureChance = 0.3;
+  const failureChance = baseFailureChance * riskMultiplier;
+  let isSuccess = true;
   
-  // --- 資源稀有度加權選擇 (優化方案修正) ---
+  // 高疲勞懲罰 & 機率失敗
+  if ((game.fatigue >= 20 && Math.random() < failureChance) || Math.random() < 0.1) { 
+      isSuccess = false;
+  }
+
+  // 選擇物品 (即使失敗也要先算好，雖然不會給玩家)
   let selectedItem = null;
-  let totalWeight = 0;
-  
-  // 1. 計算權重總和與創建加權列表
-  const weightedList = materialNames.map(name => {
-      const data = ITEM_DATA[name];
-      let weight;
-      if (data.tier === 1) weight = 5;
-      else if (data.tier === 2) weight = 3;
-      else weight = 2; // T3
-      
-      totalWeight += weight;
-      return { name: name, weight: weight };
-  });
+  if (isSuccess) {
+      let totalWeight = 0;
+      const weightedList = materialNames.map(name => {
+          const data = ITEM_DATA[name];
+          let weight = (data.tier === 1) ? 5 : (data.tier === 2 ? 3 : 2);
+          totalWeight += weight;
+          return { name: name, weight: weight };
+      });
 
-  // 2. 進行隨機抽取
-  let randWeight = Math.random() * totalWeight;
-  let cumulativeWeight = 0;
-  
-  for (let item of weightedList) {
-      cumulativeWeight += item.weight;
-      if (randWeight < cumulativeWeight) {
-          selectedItem = item.name; // 正確獲取材料名稱 (物件鍵)
-          break;
+      let randWeight = Math.random() * totalWeight;
+      let cumulativeWeight = 0;
+      for (let item of weightedList) {
+          cumulativeWeight += item.weight;
+          if (randWeight < cumulativeWeight) {
+              selectedItem = item.name;
+              break;
+          }
       }
   }
 
-  // --- 疲勞與探索失敗判斷 ---
-  let yieldItem = true;
-  const baseFailureChance = 0.3;
-  const failureChance = baseFailureChance * riskMultiplier;
+  // 2. 播放過場動畫 (Animation Phase)
+  // 暫時禁用所有按鈕防止重複點擊
+  const allBtns = document.querySelectorAll("button");
+  allBtns.forEach(b => b.disabled = true);
 
-  if (game.fatigue >= 25 && Math.random() < failureChance) { 
-    addLog(`你在${names[area]}感到頭暈目眩，一無所獲。`, 'fail');
-    yieldItem = false;
-  }
-  
-  // --- 獲取道具並更新狀態 ---
-  if (yieldItem && selectedItem) {
-    game.inventory[selectedItem] = (game.inventory[selectedItem]||0) + 1;
-    game.invCount += 1;
-    
-    // Log story
-    const areaStories = exploreStories[area];
-    const areaText = areaStories[Math.floor(Math.random()*areaStories.length)];
-    const itemStory = ITEM_DATA[selectedItem].story;
-    addLog(`你在${names[area]}探索：${areaText} 你發現了「${ITEM_DATA[selectedItem].icon} ${selectedItem}」！(${itemStory})`, 'normal');
-  } else if (!yieldItem) {
-    // Still costs fatigue but no item found on risk
-    addLog(`你在${names[area]}感到非常疲憊，沒有採集到任何東西。`);
-  }
-  
-  renderGameState();
+  playExplorationScene(area, isSuccess, () => {
+      // 3. 動畫結束後執行結果 (Result Phase)
+      allBtns.forEach(b => b.disabled = false); // 恢復按鈕
+      updateExploreButtons(); // 重新計算按鈕狀態
+
+      if (isSuccess && selectedItem) {
+        game.inventory[selectedItem] = (game.inventory[selectedItem]||0) + 1;
+        game.invCount += 1;
+        
+        const areaStories = exploreStories[area];
+        const areaText = areaStories[Math.floor(Math.random()*areaStories.length)];
+        const itemStory = ITEM_DATA[selectedItem].story;
+        
+        // 顯示結果
+        addLog(`你在${names[area]}探索：${areaText} 黑貓幫你挖到了「${ITEM_DATA[selectedItem].icon} ${selectedItem}」！(${itemStory})`, 'success');
+      } else {
+        addLog(`你在${names[area]}晃了一圈，黑貓看起來很困惑，什麼都沒找到。`, 'fail');
+      }
+      
+      renderGameState();
+  });
 }
 function addToCauldron(item) {
   if (game.cauldron.length >= 2) {
